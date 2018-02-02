@@ -23,7 +23,8 @@ def energy_map(im):
             Gx=convo3x3(conv1,voisinnage)
             Gy=convo3x3(conv2,voisinnage)
             G=math.sqrt(Gx**2+Gy**2)
-            map_ener[y][x]=int(G)
+            G = int(G) if int(G) <=255 else 255
+            map_ener[y][x]=G
     return map_ener
 
 

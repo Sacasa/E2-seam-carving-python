@@ -2,7 +2,7 @@ from PIL import Image
 
 
 def dynamic_programming(mat):
-    cop = list(mat)
+    cop = [[0]*len(mat[0]) for y in range(len(mat))]
     for y in range(len(mat)):
         for x in range(len(mat[0])):
             if y == 0:
@@ -13,8 +13,7 @@ def dynamic_programming(mat):
                 cop[y][x]= mat[y][x] + min([cop[y-1][x],cop[y-1][x-1]])
             else:
                 cop[y][x]= mat[y][x] + min([cop[y-1][x-1],cop[y-1][x],cop[y-1][x+1]])
-
-
+    print(cop)
     start = cop[0].index(min(cop[0]))
     seam = [(start,0)]
     x = start
