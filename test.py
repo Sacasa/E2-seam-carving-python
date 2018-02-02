@@ -1,3 +1,4 @@
+import sys
 from PIL import Image, ImageFilter
 
 def calc_power_tab(im):
@@ -63,7 +64,7 @@ def forward_im(im,path_tab):
 				buffer2[x,y]=buffer[x+1,y]
 	return cp
 
-im=Image.open("original.jpg")
+im=Image.open(sys.argv[1] +".jpg")
 #im=im.resize((im.size[0]//4,im.size[1]//4))
 im.show()
 for i in range(100):
@@ -78,5 +79,6 @@ for i in range(100):
 	im=forward_im(cp,path_tab)
 	print(i)
 im.show()
+im.save(sys.argv[1] + "_res.jpg", "JPEG")
 		
 
