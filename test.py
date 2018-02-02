@@ -41,14 +41,14 @@ def display_path_tab(path_tab,im):
 	im=im.convert("RGB")
 	buffer2=im.load()
 	for x in range(im.size[0]):
+
 		for y in range(im.size[1]):
 			if path_tab[x][y]==255:
 				buffer2[x,y]=(255,0,0)
 	return im
 
 def forward_im(im,path_tab):
-	cp=Image.new("L",(im.size[0]-1,im.size[1]),0)
-	im=im.convert("L")
+	cp=Image.new("RGB",(im.size[0]-1,im.size[1]),0)
 	buffer2=cp.load()
 	buffer=im.load()
 	x_path = [0]*cp.size[1]
@@ -69,12 +69,11 @@ im=Image.open(sys.argv[1] +".jpg")
 im.show()
 for i in range(100):
 	truc = im.copy()
+	cp=im.copy()
 	im_bw=im.convert("L")
-	cp=im_bw.copy()
 	im_sobel = im_bw.filter(ImageFilter.FIND_EDGES)
-	im=im_sobel
-	power_tab=calc_power_tab(im)
-	path_tab=find_power_path(power_tab,im)
+	power_tab=calc_power_tab(im_sobel)
+	path_tab=find_power_path(power_tab,im_sobel)
 	truc=display_path_tab(path_tab,truc)
 	im=forward_im(cp,path_tab)
 	print(i)
