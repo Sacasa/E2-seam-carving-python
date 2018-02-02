@@ -13,21 +13,34 @@ def dynamic_programming(mat):
                 cop[y][x]= mat[y][x] + min([cop[y-1][x],cop[y-1][x-1]])
             else:
                 cop[y][x]= mat[y][x] + min([cop[y-1][x-1],cop[y-1][x],cop[y-1][x+1]])
-    print(cop)
-    start = cop[0].index(min(cop[0]))
+    # start = cop[0].index(min(cop[0]))
+    # seam = [(start,0)]
+    # x = start
+    # dx = [-1,0,1]
+    # for y in range(len(cop)-1):
+    #     center = cop[y+1][x]
+    #     if x == 0:
+    #         values = [250000,center,cop[y+1][x+1]]
+    #     elif x == len(cop[0])-1:
+    #         values = [cop[y+1][x-1],center,250000]
+    #     else:
+    #         values = [cop[y+1][x-1],center,cop[y+1][x+1]]
+    #     x += dx[values.index(min(values))]
+    #     seam.append((x,y+1))
+    start = cop[-1].index(min(cop[-1]))
     seam = [(start,0)]
     x = start
     dx = [-1,0,1]
-    for y in range(len(cop)-1):
-        center = cop[y+1][x]
+    for y in range(len(cop)-1,0,-1):
+        center = cop[y-1][x]
         if x == 0:
-            values = [250000,center,cop[y+1][x+1]]
+            values = [250000,center,cop[y-1][x+1]]
         elif x == len(cop[0])-1:
-            values = [cop[y+1][x-1],center,250000]
+            values = [cop[y-1][x-1],center,250000]
         else:
-            values = [cop[y+1][x-1],center,cop[y+1][x+1]]
+            values = [cop[y-1][x-1],center,cop[y-1][x+1]]
         x += dx[values.index(min(values))]
-        seam.append((x,y+1))
+        seam.append((x,y-1))
 
     return seam
 
