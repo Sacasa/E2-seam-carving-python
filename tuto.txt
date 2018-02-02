@@ -1,0 +1,9 @@
+git clone https://github.com/garridoq/E2-seam-carving-python.git
+git checkout NomDeVotreBranche
+
+Pour ajouter des fichiers
+git add -A
+
+Pour commit
+git commit -m "message"
+pit push origin NomDeVotreBranche
