@@ -1,9 +1,11 @@
 from PIL import Image
 import numpy as np
+from numba import autojit
+
 
 
 def dynamic_programming(mat):
-    cop = [[0]*len(mat[0]) for y in range(len(mat))]
+    cop = np.zeros((len(mat),len(mat[0])) , dtype=np.int16)
     for y in range(len(mat)):
         for x in range(len(mat[0])):
             if y == 0:
@@ -15,20 +17,21 @@ def dynamic_programming(mat):
             else:
                 cop[y][x]= mat[y][x] + min([cop[y-1][x-1],cop[y-1][x],cop[y-1][x+1]])
 
-    start = cop[-1].index(min(cop[-1]))
-    seam = [(start,0)]
+    start = argmin(cop[-1])
+    seam = np.array([[start,0]],dtype=np.int16)
     x = start
-    dx = [-1,0,1]
+    dx = np.array([-1,0,1],dtype=np.int16)
     for y in range(len(cop)-1,0,-1):
         center = cop[y-1][x]
         if x == 0:
-            values = [250000,center,cop[y-1][x+1]]
+            values = np.array([32000,center,cop[y-1][x+1]],dtype=np.int16)
         elif x == len(cop[0])-1:
-            values = [cop[y-1][x-1],center,250000]
+            values = np.array([cop[y-1][x-1],center,32000],dtype=np.int16)
         else:
-            values = [cop[y-1][x-1],center,cop[y-1][x+1]]
-        x += dx[values.index(min(values))]
-        seam.append((x,y-1))
+            values = np.array([cop[y-1][x-1],center,cop[y-1][x+1]],dtype=np.int16)
+        min_val = min(values)
+        x += dx[argmin(values)]
+        seam = np.append(seam,[[x,y-1]],axis=0)
 
     return seam
 
@@ -56,6 +59,7 @@ def move_l(im,list):
                 pix_cop[x,y] = pix[x+1,y]
     return cop
 
+@autojit
 def move_mat(im,list):
     cop = np.zeros((len(im),len(im[0])-1), dtype=np.int16)
     for y in range(len(im)):
@@ -65,3 +69,10 @@ def move_mat(im,list):
             else:
                 cop[y][x] = im[y][x+1]
     return cop
+
+def argmin(a):
+    amin = 0
+    for i in range(len(a)):
+        if(a[i] < a[amin]):
+            amin = i
+    return amin

@@ -1,0 +1,10 @@
+====================================================================
+Temps moyen de calcul des seams: 81.47
+Temps moyen de décalage de l'image : 28.62
+Temps moyen de décalage du gradient : 1.7
+Temps moyen de sauvegarde de l'image (ne restera pas) : 13.48
+====================================================================
+Temps d'execution : 13331 ms
+Temps moyen par iterartion : 133.31 ms
+Taille originale : (256,174)
+Taille finale : (156,174)

@@ -2,11 +2,11 @@ from PIL import Image
 import time
 import numpy as np
 import sys
-import preprocessing
-import seams
+import preprocessingCUDA as prep
+import seamsCUDA as seams
 from statistics import mean
 
-if __name__ == '__main__':
+def main():
     start = int(round(time.time() * 1000))
     name = sys.argv[1]
     im = Image.open(name)
@@ -20,16 +20,14 @@ if __name__ == '__main__':
     temps_dec_grad= []
     temps_sauv = []
 
-    # gradient = preprocessing.sobel(cop)
-    # for i in range(int(sys.argv[2])):
-    #     print("{} ème iteration".format(i))
-    #     list_sims_coords = seams.dynamic_programming(gradient)
-    #     img = seams.move(img,list_sims_coords)
-    #     gradient = seams.move_mat(gradient,list_sims_coords)
-    #     img.save("images/img{}.png".format(i))
+    #using matrices  
+    #https://stackoverflow.com/questions/384759/how-to-convert-a-pil-image-into-a-numpy-array  
 
-
-    gradient = preprocessing.sobel(cop)
+    im_array = np.array(cop)
+    
+    gradient = np.zeros((len(im_array),len(im_array[0])) , dtype=np.int16)
+    prep.sobel(im_array,gradient)
+    print("shape im et gradient:{},{}".format(im_array.shape,gradient.shape))
     for i in range(int(sys.argv[2])):
         print("{} ème iteration".format(i))
 
@@ -54,20 +52,6 @@ if __name__ == '__main__':
         fin = round(time.time() * 1000)
         temps_sauv.append(fin-deb)
 
-    # sobel = preprocessing.sobel_img(im).convert("L")
-
-    # for i in range(int(sys.argv[2])):
-    #     print("{} ème iteration".format(i))
-
-    #     sobel_pix = sobel.load()
-    #     gradient =[[0]*img.size[0] for y in range(img.size[1])]
-    #     for x in range(img.size[0]):
-    #         for y in range(im.size[1]):
-    #             gradient[y][x] = sobel_pix[x,y]
-    #     list_sims_coords = seams.dynamic_programming(gradient)
-    #     img = seams.move(img,list_sims_coords)
-    #     sobel = seams.move_l(sobel,list_sims_coords)
-    #     img.save("images2/img{}.png".format(i))
 
     end = int(round(time.time() * 1000))
     print("====================================================================")
@@ -82,3 +66,8 @@ if __name__ == '__main__':
     print("Taille finale : ({},{})".format(img.size[0],img.size[1]))
 
     img.show()
+
+
+if __name__ == '__main__':
+    main()
+    
