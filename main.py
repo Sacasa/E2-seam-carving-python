@@ -28,30 +28,31 @@ if __name__ == '__main__':
     #     gradient = seams.move_mat(gradient,list_sims_coords)
     #     img.save("images/img{}.png".format(i))
 
-
+    deb = time.time() * 1000
     gradient = preprocessing.sobel(cop)
+    fin = time.time() * 1000
+    sobel_time = fin - deb
     for i in range(int(sys.argv[2])):
-        print("{} ème iteration".format(i))
 
-        deb = round(time.time() * 1000)
+        deb = time.time() * 1000
         list_sims_coords = seams.dynamic_programming(gradient)
-        fin = round(time.time() * 1000)
+        fin = time.time() * 1000
         temps_seams.append(fin-deb)
 
-        deb = round(time.time() * 1000)
+        deb = time.time() * 1000
         img = seams.move(img,list_sims_coords)
-        fin = round(time.time() * 1000)
+        fin = time.time() * 1000
         temps_dec_im.append(fin-deb)
 
-        deb = round(time.time() * 1000)
+        deb = time.time() * 1000
         gradient = seams.move_mat(gradient,list_sims_coords)
-        fin = round(time.time() * 1000)
+        fin = time.time() * 1000
         temps_dec_grad.append(fin-deb)
 
 
-        deb = round(time.time() * 1000)
+        deb = time.time() * 1000
         img.save("images/img{}.png".format(i))
-        fin = round(time.time() * 1000)
+        fin = time.time() * 1000
         temps_sauv.append(fin-deb)
 
     # sobel = preprocessing.sobel_img(im).convert("L")
@@ -71,6 +72,7 @@ if __name__ == '__main__':
 
     end = int(round(time.time() * 1000))
     print("====================================================================")
+    print("Temps moyen de calcul de sobel: {}".format(sobel_time))
     print("Temps moyen de calcul des seams: {}".format(mean(temps_seams)))
     print("Temps moyen de décalage de l'image : {}".format(mean(temps_dec_im)))
     print("Temps moyen de décalage du gradient : {}".format(mean(temps_dec_grad)))

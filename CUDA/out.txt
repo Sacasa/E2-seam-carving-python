@@ -1,10 +1,11 @@
 ====================================================================
-Temps moyen de calcul des seams: 81.47
-Temps moyen de décalage de l'image : 28.62
-Temps moyen de décalage du gradient : 1.7
-Temps moyen de sauvegarde de l'image (ne restera pas) : 13.48
+Temps moyen de calcul de sobel: 793.295654296875
+Temps moyen de calcul des seams: 82.31917724609374
+Temps moyen de décalage de l'image : 28.690595703125
+Temps moyen de décalage du gradient : 1.72648681640625
+Temps moyen de sauvegarde de l'image (ne restera pas) : 13.4430029296875
 ====================================================================
-Temps d'execution : 13331 ms
-Temps moyen par iterartion : 133.31 ms
+Temps d'execution : 13423 ms
+Temps moyen par iterartion : 134.23 ms
 Taille originale : (256,174)
 Taille finale : (156,174)
