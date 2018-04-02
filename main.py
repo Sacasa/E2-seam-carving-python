@@ -50,10 +50,10 @@ if __name__ == '__main__':
         temps_dec_grad.append(fin-deb)
 
 
-        deb = time.time() * 1000
-        img.save("images/img{}.png".format(i))
-        fin = time.time() * 1000
-        temps_sauv.append(fin-deb)
+    deb = time.time() * 1000
+    img.save("images/result.png")
+    fin = time.time() * 1000
+    temps_sauv = fin-deb
 
     # sobel = preprocessing.sobel_img(im).convert("L")
 
@@ -71,15 +71,15 @@ if __name__ == '__main__':
     #     img.save("images2/img{}.png".format(i))
 
     end = int(round(time.time() * 1000))
+    print("Temps de calcul de sobel: {}".format(sobel_time))
     print("====================================================================")
-    print("Temps moyen de calcul de sobel: {}".format(sobel_time))
     print("Temps moyen de calcul des seams: {}".format(mean(temps_seams)))
     print("Temps moyen de décalage de l'image : {}".format(mean(temps_dec_im)))
     print("Temps moyen de décalage du gradient : {}".format(mean(temps_dec_grad)))
-    print("Temps moyen de sauvegarde de l'image (ne restera pas) : {}".format(mean(temps_sauv)))
+    print("Temps moyen par étape : {}".format(mean(temps_seams) + mean(temps_dec_im) + mean(temps_dec_grad)))
     print("====================================================================")
+    print("Temps de sauvegarde de l'image : {}".format(temps_sauv))
     print("Temps d'execution : {} ms".format(end-start))
-    print("Temps moyen par iterartion : {} ms".format((end-start)/int(sys.argv[2])))
     print("Taille originale : ({},{})".format(im.size[0],im.size[1]))
     print("Taille finale : ({},{})".format(img.size[0],img.size[1]))
 

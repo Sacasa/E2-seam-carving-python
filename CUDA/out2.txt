@@ -1,0 +1,11 @@
+Temps de calcul de sobel: 821.703857421875
+====================================================================
+Temps moyen de calcul des seams: 79.50625732421875
+Temps moyen de décalage de l'image : 7.7614208984375
+Temps moyen de décalage du gradient : 1.72642822265625
+Temps moyen par étape : 88.99410644531251
+====================================================================
+Temps de sauvegarde de l'image : 31.52685546875
+Temps d'execution : 9765 ms
+Taille originale : (256,174)
+Taille finale : (256,174)

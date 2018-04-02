@@ -17,7 +17,7 @@ def dynamic_programming(mat):
             else:
                 cop[y][x]= mat[y][x] + min([cop[y-1][x-1],cop[y-1][x],cop[y-1][x+1]])
 
-    start = argmin(cop[-1])
+    start = np.argmin(cop[-1])
     seam = np.array([[start,0]],dtype=np.int16)
     x = start
     dx = np.array([-1,0,1],dtype=np.int16)
@@ -30,7 +30,7 @@ def dynamic_programming(mat):
         else:
             values = np.array([cop[y-1][x-1],center,cop[y-1][x+1]],dtype=np.int16)
         min_val = min(values)
-        x += dx[argmin(values)]
+        x += dx[np.argmin(values)]
         seam = np.append(seam,[[x,y-1]],axis=0)
 
     return seam
@@ -62,6 +62,17 @@ def move_l(im,list):
 @autojit
 def move_mat(im,list):
     cop = np.zeros((len(im),len(im[0])-1), dtype=np.int16)
+    for y in range(len(im)):
+        for x in range(len(cop[0])):
+            if x < list[y][0]:
+                cop[y][x] = im[y][x]
+            else:
+                cop[y][x] = im[y][x+1]
+    return cop
+
+@autojit
+def move_mat_rgb(im,list):
+    cop = np.zeros((im.shape[0],im.shape[1]-1,im.shape[2]), dtype=np.int16)
     for y in range(len(im)):
         for x in range(len(cop[0])):
             if x < list[y][0]:
