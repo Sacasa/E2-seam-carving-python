@@ -7,12 +7,9 @@ import seamsCUDA as seams
 from statistics import mean
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from numba import cuda
 from numba import autojit
 
-
-
-def main():    
+def main():
     start = int(round(time.time() * 1000))
     name = sys.argv[1]
     im = Image.open(name)
@@ -32,30 +29,12 @@ def main():
 
     im_array = np.array(img)
 
-
-    
+    deb = time.time() * 1000
     cop_array = np.array(cop)
     gradient = np.zeros((len(cop_array),len(cop_array[0])) , dtype=np.int16)
-    blockdim = (4, 2)
-    griddim = (4,1)
-    #Params to gradient ( no np array in cuda.jit function)
-    conv1 = np.array([[-1,0,1],[-2,0,2],[-1,0,1]],dtype =np.int16)
-    conv2 = np.array([[-1,-2,-1],[0,0,0],[1,2,1]],dtype =np.int16)
-    voisinnage = np.zeros((3,3), dtype= np.int16)
-
-
-    deb = time.time() * 1000
-    
-    d_gradient = cuda.to_device(gradient)
-    prep.sobel_kernel[griddim, blockdim](cop_array, d_gradient,conv1,conv2,voisinnage) 
     prep.sobel(cop_array,gradient)
-    d_gradient.to_host()
-
     fin = time.time() * 1000
     sobel_time = fin - deb
-    
-
-
     for i in range(int(sys.argv[2])):
         # print("{} ème iteration".format(i))
 
