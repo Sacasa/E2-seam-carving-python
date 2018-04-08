@@ -29,7 +29,7 @@ if __name__ == '__main__':
     #     img.save("images/img{}.png".format(i))
 
     deb = time.time() * 1000
-    gradient = preprocessing.sobel(cop)
+    gradient = preprocessing.sobel_v2(cop)
     fin = time.time() * 1000
     sobel_time = fin - deb
     for i in range(int(sys.argv[2])):

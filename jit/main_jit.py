@@ -2,8 +2,8 @@ from PIL import Image
 import time
 import numpy as np
 import sys
-import preprocessingCUDA as prep
-import seamsCUDA as seams
+import preprocessing_jit as prep
+import seams_jit as seams
 from statistics import mean
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -32,7 +32,7 @@ def main():
     deb = time.time() * 1000
     cop_array = np.array(cop)
     gradient = np.zeros((len(cop_array),len(cop_array[0])) , dtype=np.int16)
-    prep.sobel(cop_array,gradient)
+    prep.sobel_v2(cop_array,gradient)
     fin = time.time() * 1000
     sobel_time = fin - deb
     for i in range(int(sys.argv[2])):
