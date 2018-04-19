@@ -82,6 +82,7 @@ int*  seams(cv::Mat mat){
     
     //Only need to keep track of x's as y = index(x)
     //When we go through array, just keep track of index
+    //Don't forget to free 
     int* seams_x = new int[mat.rows]();
     seams_x[mat.rows-1] = argmin_end;
 
@@ -112,9 +113,42 @@ int*  seams(cv::Mat mat){
     return seams_x;
 }
 
+cv::Mat move_im_gray(cv::Mat mat, int xs[]){
+    //for RGB : color = CV_8UC3
+    //for GrayScale color = CV_8UC1
+    cv::Mat cop(mat.rows,mat.cols-1,CV_8UC1,cv::Scalar(100));
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
+            else
+                cop.at<uchar>(y,x) = mat.at<uchar>(y,x+1);
+        }
+    }
+    return cop;
+}
+
+cv::Mat move_im_rgb(cv::Mat mat, int xs[]){
+    //for RGB : color = CV_8UC3
+    //for GrayScale color = CV_8UC1
+    cv::Mat cop(mat.rows,mat.cols-1,CV_8UC3,cv::Scalar(100,100,100));
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x);
+            else
+                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x+1);
+        }
+    }
+    return cop;
+}
+
+
 int main( int argc, char** argv ) {
   
-  cv::Mat image, image_gray, image_to;
+  cv::Mat image, image_gray, gradient, result;
   image = cv::imread(argv[1] , CV_LOAD_IMAGE_COLOR);
   
 
@@ -126,28 +160,39 @@ int main( int argc, char** argv ) {
 
   cv::cvtColor(image, image_gray, CV_RGB2GRAY);
   
-  image_to = image_gray.clone();
+  gradient = image_gray.clone();
 
 
   //Timing sobel execution time
 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-  sobel(image_gray,image_to);
+  sobel(image_gray,gradient);
 
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> time_span = t2 - t1;
-  std::cout << "It took me " << time_span.count() << " milliseconds." << std::endl;
+  std::cout << "Sobel took :" << time_span.count() << " milliseconds." << std::endl;
 
+  result = image.clone();
 
-  //Showing Sobel and then original image
-  
-  cv::imshow( "Sobel", image_to );
+  t1 = std::chrono::high_resolution_clock::now();
+
+  for(int i =0; i < atoi(argv[2]); i++){
+
+    int* list_x_seams = seams(gradient);
+    result = move_im_rgb(result, list_x_seams);
+    gradient = move_im_gray(gradient, list_x_seams);
+    free(list_x_seams);
+
+  }
+  t2 = std::chrono::high_resolution_clock::now();
+  time_span = t2 - t1;
+  std::cout << "All operations after took : :" << time_span.count() << " milliseconds." << std::endl;
+
+  //Showing result
+
+  cv::imshow( "Result", result );  
   cv::waitKey(0);
 
-  cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-  cv::imshow( "Display window", image );
-  
-  cv::waitKey(0);
   return 0;
 }
