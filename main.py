@@ -14,6 +14,7 @@ if __name__ == '__main__':
     pix = im.load()
     img = im.copy()
     images_gif=[]
+    time_beginning = time.time()*1000
 
     temps_seams=[]
     temps_dec_im = []
@@ -29,10 +30,11 @@ if __name__ == '__main__':
     #     img.save("images/img{}.png".format(i))
 
     deb = time.time() * 1000
-    gradient = preprocessing.sobel_v2(cop)
+    gradient = preprocessing.sobel(cop)
     fin = time.time() * 1000
     sobel_time = fin - deb
     for i in range(int(sys.argv[2])):
+        print("{}th iteration\nTime elapsed: {} ms".format(i+1,time.time()*1000-time_beginning))
 
         deb = time.time() * 1000
         list_sims_coords = seams.dynamic_programming(gradient)
