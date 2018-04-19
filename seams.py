@@ -16,7 +16,7 @@ def dynamic_programming(mat):
                 cop[y][x]= mat[y][x] + min([cop[y-1][x-1],cop[y-1][x],cop[y-1][x+1]])
 
     start = cop[-1].index(min(cop[-1]))
-    seam = [(start,0)]
+    seam = [(start,len(mat)-1)]
     x = start
     dx = [-1,0,1]
     for y in range(len(cop)-1,0,-1):
