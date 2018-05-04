@@ -191,7 +191,7 @@ int main( int argc, char** argv ) {
 
   //Showing result
 
-  cv::imshow( "Result", result );  
+  cv::imwrite( "result.png", result ); 
   cv::waitKey(0);
 
   return 0;
