@@ -3,6 +3,7 @@
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <math.h>
+#include <sstream>
 
 #include <chrono>
  
@@ -131,14 +132,14 @@ cv::Mat move_im_gray(cv::Mat mat, int xs[]){
 
 cv::Mat insert_seams_gray(cv::Mat mat, int xs[]){
 
-    cv::Mat cop(mat.rows,mat.cols+1,CV_8UC3,cv::Scalar(100,100,100));
+    cv::Mat cop(mat.rows,mat.cols+1,CV_8UC1,cv::Scalar(100));
 
     for(int y = 0; y < cop.rows; y++){
         for(int x = 0; x < cop.cols; x++){
             if(x < xs[y])
                 cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
             else if(x == xs[y]){
-                cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
+                cop.at<uchar>(y,x) = 255;
                 cop.at<uchar>(y,x+1) = (mat.at<uchar>(y,x) + mat.at<uchar>(y,x+1))/2;
             }
             else
@@ -211,6 +212,7 @@ int main( int argc, char** argv ) {
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
   sobel(image_gray,gradient);
+  cv::imwrite( "./gradient/gradient.png", gradient ); 
 
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> time_span = t2 - t1;
@@ -223,21 +225,25 @@ int main( int argc, char** argv ) {
   for(int i =0; i < atoi(argv[2]); i++){
 
     int* list_x_seams = seams(gradient);
-    // result = move_im_rgb(result, list_x_seams);
-    // gradient = move_im_gray(gradient, list_x_seams);
-    result = insert_seams(result, list_x_seams);
-    gradient = insert_seams_gray(gradient, list_x_seams);
+    result = move_im_rgb(result, list_x_seams);
+    gradient = move_im_gray(gradient, list_x_seams);
+    // result = insert_seams(result, list_x_seams);
+    // gradient = insert_seams_gray(gradient, list_x_seams);
     free(list_x_seams);
 
+    std::stringstream gradient_name,result_name;
+    gradient_name << "./gradient/gradient"<< i << ".png"; 
+    result_name << "./result/result"<< i << ".png" ;
+    // cv::imwrite( gradient_name.str().c_str(), gradient ); 
+    // cv::imwrite( result_name.str().c_str(), result ); 
+
+    std::cout << "Processing image : " << int(float(i)/atoi(argv[2]) *100) << "%" << "\r" <<std::flush;
   }
+  std::cout<<std::endl;
   t2 = std::chrono::high_resolution_clock::now();
   time_span = t2 - t1;
   std::cout << "All operations after took : " << time_span.count() << " milliseconds." << std::endl;
 
-  //Showing result
-
-  cv::imwrite( "result.png", result ); 
-  cv::waitKey(0);
-
+  
   return 0;
 }
