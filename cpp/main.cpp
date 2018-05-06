@@ -64,7 +64,9 @@ void sobel(cv::Mat img_gray, cv::Mat img_to){
 
 
 int*  seams(cv::Mat mat){
-    int cop[mat.rows][mat.cols] = { };
+    int** cop = new int*[mat.rows];
+    for(int i = 0; i < mat.rows; ++i)
+        cop[i] = new int[mat.cols];
 
     for(int y = 0; y < mat.rows; y++){
         for(int x = 0; x < mat.cols; x++){
@@ -78,6 +80,7 @@ int*  seams(cv::Mat mat){
                 cop[y][x] = mat.at<uchar>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
         }
     }
+
 
     int argmin_end = argmin(cop[mat.rows-1],mat.cols);
     
@@ -111,6 +114,10 @@ int*  seams(cv::Mat mat){
         x += dx[argmin(values,3)];
         seams_x[y-1] = x;
     }
+    for(int i = 0; i < mat.rows; ++i) {
+        delete [] cop[i];
+    }
+    delete [] cop;
     return seams_x;
 }
 
@@ -192,7 +199,7 @@ cv::Mat insert_seams(cv::Mat mat, int xs[]){
 
 int main( int argc, char** argv ) {
   
-  cv::Mat image, image_gray, gradient, result;
+  cv::Mat image,gradient,image_gray;
   image = cv::imread(argv[1] , CV_LOAD_IMAGE_COLOR);
   
 
@@ -202,9 +209,9 @@ int main( int argc, char** argv ) {
       return -1;
   }
 
-  cv::cvtColor(image, image_gray, CV_RGB2GRAY);
+  cv::cvtColor(image, gradient, CV_RGB2GRAY);
   
-  gradient = image_gray.clone();
+  // cv::Mat gradient(image.rows,image.cols,CV_32SC1,cv::Scalar(100));
 
 
   //Timing sobel execution time
@@ -218,33 +225,33 @@ int main( int argc, char** argv ) {
   std::chrono::duration<double, std::milli> time_span = t2 - t1;
   std::cout << "Sobel took :" << time_span.count() << " milliseconds." << std::endl;
 
-  result = image.clone();
 
   t1 = std::chrono::high_resolution_clock::now();
 
   for(int i =0; i < atoi(argv[2]); i++){
-
     int* list_x_seams = seams(gradient);
-    // result = move_im_rgb(result, list_x_seams);
-    // gradient = move_im_gray(gradient, list_x_seams);
-    result = insert_seams(result, list_x_seams);
-    gradient = insert_seams_gray(gradient, list_x_seams);
+    image = move_im_rgb(image, list_x_seams);
+    gradient = move_im_gray(gradient, list_x_seams);
+    
+    // image = insert_seams(image, list_x_seams);
+    // gradient = insert_seams_gray(gradient, list_x_seams);
     free(list_x_seams);
 
     std::stringstream gradient_name,result_name;
     gradient_name << "./gradient/gradient"<< i << ".png"; 
     result_name << "./result/result"<< i << ".png" ;
     // cv::imwrite( gradient_name.str().c_str(), gradient ); 
-    // cv::imwrite( result_name.str().c_str(), result ); 
+    // cv::imwrite( result_name.str().c_str(), image ); 
 
     std::cout << "Processing image : " << int(float(i)/atoi(argv[2]) *100) << "%" << "\r" <<std::flush;
+
   }
   std::cout<<std::endl;
   t2 = std::chrono::high_resolution_clock::now();
   time_span = t2 - t1;
   std::cout << "All operations after took : " << time_span.count() << " milliseconds." << std::endl;
 
-  cv::imwrite("result.png",result);
+  cv::imwrite("result.png",image);
   
   return 0;
 }
