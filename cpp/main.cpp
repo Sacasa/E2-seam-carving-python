@@ -140,9 +140,9 @@ cv::Mat insert_seams_gray(cv::Mat mat, int xs[]){
                 cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
             else if(x == xs[y]){
                 cop.at<uchar>(y,x) = 255;
-                cop.at<uchar>(y,x+1) = (mat.at<uchar>(y,x) + mat.at<uchar>(y,x+1))/2;
+                cop.at<uchar>(y,x+1) = mat.at<uchar>(y,x)*0.5 + mat.at<uchar>(y,x+1)*0.5;
             }
-            else
+            else if(x > xs[y] +1)
                 cop.at<uchar>(y,x) = mat.at<uchar>(y,x-1);
         }
     }
@@ -178,9 +178,9 @@ cv::Mat insert_seams(cv::Mat mat, int xs[]){
                 cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x);
             else if(x == xs[y]){
                 cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x);
-                cop.at<cv::Vec3b>(y,x+1) = (mat.at<cv::Vec3b>(y,x) + mat.at<cv::Vec3b>(y,x+1))/2;
+                cop.at<cv::Vec3b>(y,x+1) = mat.at<cv::Vec3b>(y,x)*0.5 + mat.at<cv::Vec3b>(y,x+1)*0.5;
             }
-            else
+            else if(x > xs[y] +1)
                 cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x-1);
         }
     }
@@ -225,10 +225,10 @@ int main( int argc, char** argv ) {
   for(int i =0; i < atoi(argv[2]); i++){
 
     int* list_x_seams = seams(gradient);
-    result = move_im_rgb(result, list_x_seams);
-    gradient = move_im_gray(gradient, list_x_seams);
-    // result = insert_seams(result, list_x_seams);
-    // gradient = insert_seams_gray(gradient, list_x_seams);
+    // result = move_im_rgb(result, list_x_seams);
+    // gradient = move_im_gray(gradient, list_x_seams);
+    result = insert_seams(result, list_x_seams);
+    gradient = insert_seams_gray(gradient, list_x_seams);
     free(list_x_seams);
 
     std::stringstream gradient_name,result_name;
@@ -244,6 +244,7 @@ int main( int argc, char** argv ) {
   time_span = t2 - t1;
   std::cout << "All operations after took : " << time_span.count() << " milliseconds." << std::endl;
 
+  cv::imwrite("result.png",result);
   
   return 0;
 }
