@@ -58,14 +58,63 @@ void sobel(cv::Mat img_gray, cv::Mat img_to){
             img_to.at<uchar>(y,x) = G > 255 ? 255 : G;
         }
     }
-    std::cout<< "Sobel done" <<std::endl;
+}
 
+int  number_seams_to_remove(cv::Mat mask){
+
+    int max = 0;
+    for(int y=0; y<mask.rows; y++){
+        int count = 0;
+        for(int x=0; x<mask.cols; x++){
+            if(mask.at<uchar>(y,x) == 255)
+                count++;
+        }
+        if(count > max)
+            max = count;
+    }
+    return max;
+}
+
+void sobel_mask(cv::Mat img_gray, cv::Mat img_to, cv::Mat img_mask){
+    int convx[3][3] = {-1,0,1, -2,0,2, -1,0,1};
+    int convy[3][3] = {-1,-2,-1, 0,0,0, 1,2,1};
+
+    /* Look at opencv forEach for multithreaded for earch loop*/
+    for(int y=0; y<img_gray.rows; y++){
+        for(int x=0; x<img_gray.cols; x++){
+                
+
+            int voisinnage[3][3] = {0,0,0,0,0,0,0,0,0};
+            int i=0;
+            for(int yp= y-1; yp<y+2; yp++){
+                int j = 0;
+                for(int xp = x-1; xp < x+2; xp++){
+                    if(xp >= 0 && xp<img_gray.cols && yp >=0 && yp <img_gray.rows){
+                        voisinnage[j][i] = img_gray.at<uchar>(yp,xp);
+                    }
+                    j++;
+                }
+                i++;
+            }
+            int Gx = convo3x3(convx,voisinnage);
+            int Gy = convo3x3(convy,voisinnage);
+            int G = sqrt(pow(Gx,2) + pow(Gy,2));
+            
+            if((int)img_mask.at<uchar>(y,x) == 255){
+                img_to.at<int>(y,x) = G*-1000;
+                std::cout << "(" << x<<","<< y<<") : "<< (int)img_to.at<int>(y,x) <<std::endl;       
+            }
+            else
+                img_to.at<int>(y,x) = G;
+
+        }
+    }
 }
 
 
 int*  seams(cv::Mat mat){
     int** cop = new int*[mat.rows];
-    for(int i = 0; i < mat.rows; ++i)
+    for (int i = 0; i < mat.rows; ++i)
         cop[i] = new int[mat.cols];
 
     for(int y = 0; y < mat.rows; y++){
@@ -80,7 +129,6 @@ int*  seams(cv::Mat mat){
                 cop[y][x] = mat.at<uchar>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
         }
     }
-
 
     int argmin_end = argmin(cop[mat.rows-1],mat.cols);
     
@@ -114,12 +162,70 @@ int*  seams(cv::Mat mat){
         x += dx[argmin(values,3)];
         seams_x[y-1] = x;
     }
-    for(int i = 0; i < mat.rows; ++i) {
+
+    for (int i = 0; i < mat.rows; ++i)
         delete [] cop[i];
-    }
     delete [] cop;
     return seams_x;
 }
+
+int*  seams_mask(cv::Mat mat){
+    int** cop = new int*[mat.rows];
+    for (int i = 0; i < mat.rows; ++i)
+        cop[i] = new int[mat.cols];
+
+    for(int y = 0; y < mat.rows; y++){
+        for(int x = 0; x < mat.cols; x++){
+            if(y==0)
+                cop[y][x] = mat.at<int>(y,x);
+            else if(x==0)
+                cop[y][x] = mat.at<int>(y,x) + std::min(cop[y-1][x],cop[y-1][x+1]);
+            else if(x == mat.cols-1)
+                cop[y][x] = mat.at<int>(y,x) + std::min(cop[y-1][x],cop[y-1][x-1]);
+            else
+                cop[y][x] = mat.at<int>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
+        }
+    }
+
+    int argmin_end = argmin(cop[mat.rows-1],mat.cols);
+    
+    //Only need to keep track of x's as y = index(x)
+    //When we go through array, just keep track of index
+    //Don't forget to free 
+    int* seams_x = new int[mat.rows]();
+    seams_x[mat.rows-1] = argmin_end;
+
+    int x = argmin_end;
+    int dx[3] = {-1,0,1};
+    int values[3] = {};
+
+    for(int y = mat.rows-1; y > 0; y--){
+        int center = cop[y-1][x];
+        if(x==0){
+            values[0] =250000 ;
+            values[1] =center ;
+            values[2] =cop[y-1][x+1];   
+        }
+        else if(x == mat.cols-1){
+            values[0] = cop[y-1][x-1];
+            values[1] =center;
+            values[2] =250000;
+        }
+        else{
+            values[0] =cop[y-1][x-1] ;
+            values[1] =center ;
+            values[2] =cop[y-1][x+1];
+        }
+        x += dx[argmin(values,3)];
+        seams_x[y-1] = x;
+    }
+
+    for (int i = 0; i < mat.rows; ++i)
+        delete [] cop[i];
+    delete [] cop;
+    return seams_x;
+}
+
 
 cv::Mat move_im_gray(cv::Mat mat, int xs[]){
     //for RGB : color = CV_8UC3
@@ -132,6 +238,22 @@ cv::Mat move_im_gray(cv::Mat mat, int xs[]){
                 cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
             else
                 cop.at<uchar>(y,x) = mat.at<uchar>(y,x+1);
+        }
+    }
+    return cop;
+}
+
+cv::Mat move_im_int(cv::Mat mat, int xs[]){
+    //for RGB : color = CV_8UC3
+    //for GrayScale color = CV_8UC1
+    cv::Mat cop(mat.rows,mat.cols-1,CV_32SC1,cv::Scalar(100));
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<int>(y,x) = mat.at<int>(y,x);
+            else
+                cop.at<int>(y,x) = mat.at<int>(y,x+1);
         }
     }
     return cop;
@@ -151,6 +273,27 @@ cv::Mat insert_seams_gray(cv::Mat mat, int xs[]){
             }
             else if(x > xs[y] +1)
                 cop.at<uchar>(y,x) = mat.at<uchar>(y,x-1);
+        }
+    }
+    return cop;
+
+
+}
+
+cv::Mat insert_seams_int(cv::Mat mat, int xs[]){
+
+    cv::Mat cop(mat.rows,mat.cols+1,CV_32SC1,cv::Scalar(100));
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<int>(y,x) = mat.at<int>(y,x);
+            else if(x == xs[y]){
+                cop.at<int>(y,x) = 255;
+                cop.at<int>(y,x+1) = mat.at<int>(y,x)*0.5 + mat.at<int>(y,x+1)*0.5;
+            }
+            else if(x > xs[y] +1)
+                cop.at<int>(y,x) = mat.at<int>(y,x-1);
         }
     }
     return cop;
@@ -196,10 +339,23 @@ cv::Mat insert_seams(cv::Mat mat, int xs[]){
 
 }
 
+cv::Mat highlight_seams(cv::Mat img, int list[]){
+
+    cv::Mat cop = img.clone();
+
+    for(int y = 0; y < img.rows; y++){
+        cop.at<cv::Vec3b>(y,list[y])[0] = 255;
+        cop.at<cv::Vec3b>(y,list[y])[1] = 0;
+        cop.at<cv::Vec3b>(y,list[y])[2] = 0;
+
+    }
+    return cop;
+}
+
 
 int main( int argc, char** argv ) {
   
-  cv::Mat image,gradient,image_gray;
+  cv::Mat image, image_gray, gradient, result;
   image = cv::imread(argv[1] , CV_LOAD_IMAGE_COLOR);
   
 
@@ -209,9 +365,9 @@ int main( int argc, char** argv ) {
       return -1;
   }
 
-  cv::cvtColor(image, gradient, CV_RGB2GRAY);
+  cv::cvtColor(image, image_gray, CV_RGB2GRAY);
   
-  // cv::Mat gradient(image.rows,image.cols,CV_32SC1,cv::Scalar(100));
+  gradient = image_gray.clone();
 
 
   //Timing sobel execution time
@@ -219,39 +375,97 @@ int main( int argc, char** argv ) {
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
   sobel(image_gray,gradient);
-  cv::imwrite( "./gradient/gradient.png", gradient ); 
 
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> time_span = t2 - t1;
   std::cout << "Sobel took :" << time_span.count() << " milliseconds." << std::endl;
 
+  result = image.clone();
 
   t1 = std::chrono::high_resolution_clock::now();
 
-  for(int i =0; i < atoi(argv[2]); i++){
-    int* list_x_seams = seams(gradient);
-    image = move_im_rgb(image, list_x_seams);
-    gradient = move_im_gray(gradient, list_x_seams);
-    
-    // image = insert_seams(image, list_x_seams);
-    // gradient = insert_seams_gray(gradient, list_x_seams);
-    free(list_x_seams);
+  if(std::strcmp(argv[2],"add") == 0){
+      for(int i =0; i < atoi(argv[3]); i++){
 
-    std::stringstream gradient_name,result_name;
-    gradient_name << "./gradient/gradient"<< i << ".png"; 
-    result_name << "./result/result"<< i << ".png" ;
-    // cv::imwrite( gradient_name.str().c_str(), gradient ); 
-    // cv::imwrite( result_name.str().c_str(), image ); 
+        int* list_x_seams = seams(gradient);
+        result = insert_seams(result, list_x_seams);
+        gradient = insert_seams_gray(gradient, list_x_seams);
+        free(list_x_seams);
 
-    std::cout << "Processing image : " << int(float(i)/atoi(argv[2]) *100) << "%" << "\r" <<std::flush;
+        std::cout << "Adding seams : " << int(float(i)/atoi(argv[3]) *100) << "%" << "\r" <<std::flush;
+      }
+  }
+  else if(std::strcmp(argv[2],"remove") == 0){
+      for(int i =0; i < atoi(argv[3]); i++){
 
+        int* list_x_seams = seams(gradient);
+        result = move_im_rgb(result, list_x_seams);
+        gradient = move_im_gray(gradient, list_x_seams);
+        free(list_x_seams);       
+
+        std::cout << "Removing seams : " << int(float(i)/atoi(argv[3]) *100) << "%" << "\r" <<std::flush;
+      }
+  }
+  else if(std::strcmp(argv[2],"mask") == 0){
+
+      cv::Mat mask = cv::imread(argv[3] , cv::IMREAD_GRAYSCALE);
+     
+      if(! mask.data ) {
+          std::cout <<  "Could not open or find the mask image" << std::endl ;
+          return -1;
+      }
+      cv::Mat grad(result.rows,result.cols,CV_32SC1,cv::Scalar(0));
+
+      sobel_mask(image_gray,grad,mask);
+      cv::imwrite("./gradient/gradient.png",grad);
+
+      int number = number_seams_to_remove(mask);
+      std::cout << number << std::endl;
+      for(int i =0; i <= (int)number; i++){
+
+        int* list_x_seams = seams_mask(grad);
+        result = move_im_rgb(result, list_x_seams);
+        grad = move_im_int(grad, list_x_seams);
+   
+        free(list_x_seams);   
+
+        std::cout << "Removing seams : " << int(float(i)/number *100) << "%" << "\r" <<std::flush;
+      }
+      std::cout<<std::endl;
+
+      cv::cvtColor(result, image_gray, CV_RGB2GRAY);
+      grad = image_gray.clone();
+      sobel(image_gray,grad);
+
+      for(int i =0; i < number; i++){
+
+        int* list_x_seams = seams(grad);
+        result = insert_seams(result, list_x_seams);
+        grad = insert_seams_gray(grad, list_x_seams);
+        free(list_x_seams);
+
+        std::cout << "Adding seams : " << int(float(i)/number *100) << "%" << "\r" <<std::flush;
+      }
+  }
+  else{
+    std::cout << "Choose correct mode: add, remove, mask" <<std::endl;
+    return 0;
   }
   std::cout<<std::endl;
   t2 = std::chrono::high_resolution_clock::now();
   time_span = t2 - t1;
   std::cout << "All operations after took : " << time_span.count() << " milliseconds." << std::endl;
 
-  cv::imwrite("result.png",image);
+  cv::imwrite("result.png",result);
   
   return 0;
 }
+
+
+/*image storing
+std::stringstream gradient_name,result_name;
+gradient_name << "./gradient/gradient"<< i << ".png"; 
+result_name << "./result/result"<< i << ".png" ;
+cv::imwrite( gradient_name.str().c_str(), gradient ); 
+cv::imwrite( result_name.str().c_str(), result ); 
+*/
