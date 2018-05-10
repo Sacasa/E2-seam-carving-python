@@ -249,7 +249,8 @@ int main( int argc, char** argv ) {
   int frame_width = video_in.get(CV_CAP_PROP_FRAME_WIDTH)-atoi(argv[2]); 
   int frame_height = video_in.get(CV_CAP_PROP_FRAME_HEIGHT); 
   int frame_count = video_in.get(CV_CAP_PROP_FRAME_COUNT);
-   
+  std::cout << "Video loaded : "<< frame_width + atoi(argv[2])<< "x" << frame_height << " , "<< frame_count << " frames at "<< video_in.get(CV_CAP_PROP_FPS)<< " fps"<<std::endl;
+
   // Define the codec and create VideoWriter object.The output is stored in 'outcpp.avi' file. 
   cv::VideoWriter video_out("outcpp.avi",CV_FOURCC('M','J','P','G'),video_in.get(CV_CAP_PROP_FPS), cv::Size(frame_width,frame_height)); 
 
