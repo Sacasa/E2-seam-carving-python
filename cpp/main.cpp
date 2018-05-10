@@ -31,6 +31,21 @@ int argmin(int tab[], int length){
     return index;
 }
 
+int  number_seams_to_remove(cv::Mat mask){
+
+    int max = 0;
+    for(int y=0; y<mask.rows; y++){
+        int count = 0;
+        for(int x=0; x<mask.cols; x++){
+            if(mask.at<uchar>(y,x) == 255)
+                count++;
+        }
+        if(count > max)
+            max = count;
+    }
+    return max;
+}
+
 void sobel(cv::Mat img_gray, cv::Mat img_to){
     int convx[3][3] = {-1,0,1, -2,0,2, -1,0,1};
     int convy[3][3] = {-1,-2,-1, 0,0,0, 1,2,1};
@@ -60,21 +75,6 @@ void sobel(cv::Mat img_gray, cv::Mat img_to){
     }
 }
 
-int  number_seams_to_remove(cv::Mat mask){
-
-    int max = 0;
-    for(int y=0; y<mask.rows; y++){
-        int count = 0;
-        for(int x=0; x<mask.cols; x++){
-            if(mask.at<uchar>(y,x) == 255)
-                count++;
-        }
-        if(count > max)
-            max = count;
-    }
-    return max;
-}
-
 void sobel_mask(cv::Mat img_gray, cv::Mat img_to, cv::Mat img_mask){
     int convx[3][3] = {-1,0,1, -2,0,2, -1,0,1};
     int convy[3][3] = {-1,-2,-1, 0,0,0, 1,2,1};
@@ -100,18 +100,13 @@ void sobel_mask(cv::Mat img_gray, cv::Mat img_to, cv::Mat img_mask){
             int Gy = convo3x3(convy,voisinnage);
             int G = sqrt(pow(Gx,2) + pow(Gy,2));
             
-            if((int)img_mask.at<uchar>(y,x) == 255){
-                img_to.at<int>(y,x) = G*-1000;
-                std::cout << "(" << x<<","<< y<<") : "<< (int)img_to.at<int>(y,x) <<std::endl;       
-            }
-            else
-                img_to.at<int>(y,x) = G;
+            img_to.at<int>(y,x) = ((int)img_mask.at<uchar>(y,x) == 255) ? G*-1000 : G;
 
         }
     }
 }
 
-
+template <typename T>
 int*  seams(cv::Mat mat){
     int** cop = new int*[mat.rows];
     for (int i = 0; i < mat.rows; ++i)
@@ -120,13 +115,13 @@ int*  seams(cv::Mat mat){
     for(int y = 0; y < mat.rows; y++){
         for(int x = 0; x < mat.cols; x++){
             if(y==0)
-                cop[y][x] = mat.at<uchar>(y,x);
+                cop[y][x] = mat.at<T>(y,x);
             else if(x==0)
-                cop[y][x] = mat.at<uchar>(y,x) + std::min(cop[y-1][x],cop[y-1][x+1]);
+                cop[y][x] = mat.at<T>(y,x) + std::min(cop[y-1][x],cop[y-1][x+1]);
             else if(x == mat.cols-1)
-                cop[y][x] = mat.at<uchar>(y,x) + std::min(cop[y-1][x],cop[y-1][x-1]);
+                cop[y][x] = mat.at<T>(y,x) + std::min(cop[y-1][x],cop[y-1][x-1]);
             else
-                cop[y][x] = mat.at<uchar>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
+                cop[y][x] = mat.at<T>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
         }
     }
 
@@ -167,176 +162,6 @@ int*  seams(cv::Mat mat){
         delete [] cop[i];
     delete [] cop;
     return seams_x;
-}
-
-int*  seams_mask(cv::Mat mat){
-    int** cop = new int*[mat.rows];
-    for (int i = 0; i < mat.rows; ++i)
-        cop[i] = new int[mat.cols];
-
-    for(int y = 0; y < mat.rows; y++){
-        for(int x = 0; x < mat.cols; x++){
-            if(y==0)
-                cop[y][x] = mat.at<int>(y,x);
-            else if(x==0)
-                cop[y][x] = mat.at<int>(y,x) + std::min(cop[y-1][x],cop[y-1][x+1]);
-            else if(x == mat.cols-1)
-                cop[y][x] = mat.at<int>(y,x) + std::min(cop[y-1][x],cop[y-1][x-1]);
-            else
-                cop[y][x] = mat.at<int>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
-        }
-    }
-
-    int argmin_end = argmin(cop[mat.rows-1],mat.cols);
-    
-    //Only need to keep track of x's as y = index(x)
-    //When we go through array, just keep track of index
-    //Don't forget to free 
-    int* seams_x = new int[mat.rows]();
-    seams_x[mat.rows-1] = argmin_end;
-
-    int x = argmin_end;
-    int dx[3] = {-1,0,1};
-    int values[3] = {};
-
-    for(int y = mat.rows-1; y > 0; y--){
-        int center = cop[y-1][x];
-        if(x==0){
-            values[0] =250000 ;
-            values[1] =center ;
-            values[2] =cop[y-1][x+1];   
-        }
-        else if(x == mat.cols-1){
-            values[0] = cop[y-1][x-1];
-            values[1] =center;
-            values[2] =250000;
-        }
-        else{
-            values[0] =cop[y-1][x-1] ;
-            values[1] =center ;
-            values[2] =cop[y-1][x+1];
-        }
-        x += dx[argmin(values,3)];
-        seams_x[y-1] = x;
-    }
-
-    for (int i = 0; i < mat.rows; ++i)
-        delete [] cop[i];
-    delete [] cop;
-    return seams_x;
-}
-
-
-cv::Mat move_im_gray(cv::Mat mat, int xs[]){
-    //for RGB : color = CV_8UC3
-    //for GrayScale color = CV_8UC1
-    cv::Mat cop(mat.rows,mat.cols-1,CV_8UC1,cv::Scalar(100));
-
-    for(int y = 0; y < cop.rows; y++){
-        for(int x = 0; x < cop.cols; x++){
-            if(x < xs[y])
-                cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
-            else
-                cop.at<uchar>(y,x) = mat.at<uchar>(y,x+1);
-        }
-    }
-    return cop;
-}
-
-cv::Mat move_im_int(cv::Mat mat, int xs[]){
-    //for RGB : color = CV_8UC3
-    //for GrayScale color = CV_8UC1
-    cv::Mat cop(mat.rows,mat.cols-1,CV_32SC1,cv::Scalar(100));
-
-    for(int y = 0; y < cop.rows; y++){
-        for(int x = 0; x < cop.cols; x++){
-            if(x < xs[y])
-                cop.at<int>(y,x) = mat.at<int>(y,x);
-            else
-                cop.at<int>(y,x) = mat.at<int>(y,x+1);
-        }
-    }
-    return cop;
-}
-
-cv::Mat insert_seams_gray(cv::Mat mat, int xs[]){
-
-    cv::Mat cop(mat.rows,mat.cols+1,CV_8UC1,cv::Scalar(100));
-
-    for(int y = 0; y < cop.rows; y++){
-        for(int x = 0; x < cop.cols; x++){
-            if(x < xs[y])
-                cop.at<uchar>(y,x) = mat.at<uchar>(y,x);
-            else if(x == xs[y]){
-                cop.at<uchar>(y,x) = 255;
-                cop.at<uchar>(y,x+1) = mat.at<uchar>(y,x)*0.5 + mat.at<uchar>(y,x+1)*0.5;
-            }
-            else if(x > xs[y] +1)
-                cop.at<uchar>(y,x) = mat.at<uchar>(y,x-1);
-        }
-    }
-    return cop;
-
-
-}
-
-cv::Mat insert_seams_int(cv::Mat mat, int xs[]){
-
-    cv::Mat cop(mat.rows,mat.cols+1,CV_32SC1,cv::Scalar(100));
-
-    for(int y = 0; y < cop.rows; y++){
-        for(int x = 0; x < cop.cols; x++){
-            if(x < xs[y])
-                cop.at<int>(y,x) = mat.at<int>(y,x);
-            else if(x == xs[y]){
-                cop.at<int>(y,x) = 255;
-                cop.at<int>(y,x+1) = mat.at<int>(y,x)*0.5 + mat.at<int>(y,x+1)*0.5;
-            }
-            else if(x > xs[y] +1)
-                cop.at<int>(y,x) = mat.at<int>(y,x-1);
-        }
-    }
-    return cop;
-
-
-}
-
-
-cv::Mat move_im_rgb(cv::Mat mat, int xs[]){
-    //for RGB : color = CV_8UC3
-    //for GrayScale color = CV_8UC1
-    cv::Mat cop(mat.rows,mat.cols-1,CV_8UC3,cv::Scalar(100,100,100));
-
-    for(int y = 0; y < cop.rows; y++){
-        for(int x = 0; x < cop.cols; x++){
-            if(x < xs[y])
-                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x);
-            else
-                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x+1);
-        }
-    }
-    return cop;
-}
-
-cv::Mat insert_seams(cv::Mat mat, int xs[]){
-
-    cv::Mat cop(mat.rows,mat.cols+1,CV_8UC3,cv::Scalar(100,100,100));
-
-    for(int y = 0; y < cop.rows; y++){
-        for(int x = 0; x < cop.cols; x++){
-            if(x < xs[y])
-                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x);
-            else if(x == xs[y]){
-                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x);
-                cop.at<cv::Vec3b>(y,x+1) = mat.at<cv::Vec3b>(y,x)*0.5 + mat.at<cv::Vec3b>(y,x+1)*0.5;
-            }
-            else if(x > xs[y] +1)
-                cop.at<cv::Vec3b>(y,x) = mat.at<cv::Vec3b>(y,x-1);
-        }
-    }
-    return cop;
-
-
 }
 
 cv::Mat highlight_seams(cv::Mat img, int list[]){
@@ -348,6 +173,63 @@ cv::Mat highlight_seams(cv::Mat img, int list[]){
         cop.at<cv::Vec3b>(y,list[y])[1] = 0;
         cop.at<cv::Vec3b>(y,list[y])[2] = 0;
 
+    }
+    return cop;
+}
+
+template <typename T>
+cv::Mat move_im(cv::Mat mat, int xs[]){
+    //for RGB : color = CV_8UC3
+    //for GrayScale color = CV_8UC1
+    cv::Mat cop(mat.rows,mat.cols-1,mat.type());
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<T>(y,x) = mat.at<T>(y,x);
+            else
+                cop.at<T>(y,x) = mat.at<T>(y,x+1);
+        }
+    }
+    return cop;
+}
+
+template <typename T>
+cv::Mat insert_seams(cv::Mat mat, int xs[]){
+
+    cv::Mat cop(mat.rows,mat.cols+1,mat.type());
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<T>(y,x) = mat.at<T>(y,x);
+            else if(x == xs[y]){
+                cop.at<T>(y,x) = mat.at<T>(y,x);
+                cop.at<T>(y,x+1) = mat.at<T>(y,x)*0.5 + mat.at<T>(y,x+1)*0.5;
+            }
+            else if(x > xs[y] +1)
+                cop.at<T>(y,x) = mat.at<T>(y,x-1);
+        }
+    }
+    return cop;
+}
+
+template <typename T>
+cv::Mat insert_seams_gradient(cv::Mat mat, int xs[]){
+
+    cv::Mat cop(mat.rows,mat.cols+1,mat.type());
+
+    for(int y = 0; y < cop.rows; y++){
+        for(int x = 0; x < cop.cols; x++){
+            if(x < xs[y])
+                cop.at<T>(y,x) = mat.at<T>(y,x);
+            else if(x == xs[y]){
+                cop.at<T>(y,x) = 255;
+                cop.at<T>(y,x+1) = mat.at<T>(y,x)*0.5 + mat.at<T>(y,x+1)*0.5;
+            }
+            else if(x > xs[y] +1)
+                cop.at<T>(y,x) = mat.at<T>(y,x-1);
+        }
     }
     return cop;
 }
@@ -387,9 +269,9 @@ int main( int argc, char** argv ) {
   if(std::strcmp(argv[2],"add") == 0){
       for(int i =0; i < atoi(argv[3]); i++){
 
-        int* list_x_seams = seams(gradient);
-        result = insert_seams(result, list_x_seams);
-        gradient = insert_seams_gray(gradient, list_x_seams);
+        int* list_x_seams = seams<uchar>(gradient);
+        result = insert_seams<cv::Vec3b>(result, list_x_seams);
+        gradient = insert_seams_gradient<uchar>(gradient, list_x_seams);
         free(list_x_seams);
 
         std::cout << "Adding seams : " << int(float(i)/atoi(argv[3]) *100) << "%" << "\r" <<std::flush;
@@ -398,9 +280,9 @@ int main( int argc, char** argv ) {
   else if(std::strcmp(argv[2],"remove") == 0){
       for(int i =0; i < atoi(argv[3]); i++){
 
-        int* list_x_seams = seams(gradient);
-        result = move_im_rgb(result, list_x_seams);
-        gradient = move_im_gray(gradient, list_x_seams);
+        int* list_x_seams = seams<uchar>(gradient);
+        result = move_im<cv::Vec3b>(result, list_x_seams);
+        gradient = move_im<uchar>(gradient, list_x_seams);
         free(list_x_seams);       
 
         std::cout << "Removing seams : " << int(float(i)/atoi(argv[3]) *100) << "%" << "\r" <<std::flush;
@@ -408,45 +290,44 @@ int main( int argc, char** argv ) {
   }
   else if(std::strcmp(argv[2],"mask") == 0){
 
-      cv::Mat mask = cv::imread(argv[3] , cv::IMREAD_GRAYSCALE);
+       cv::Mat mask = cv::imread(argv[3] , cv::IMREAD_GRAYSCALE);
      
-      if(! mask.data ) {
-          std::cout <<  "Could not open or find the mask image" << std::endl ;
-          return -1;
-      }
-      cv::Mat grad(result.rows,result.cols,CV_32SC1,cv::Scalar(0));
+       if(! mask.data ) {
+           std::cout <<  "Could not open or find the mask image" << std::endl ;
+           return -1;
+       }
+       cv::Mat grad(result.rows,result.cols,CV_32SC1,cv::Scalar(0));
 
-      sobel_mask(image_gray,grad,mask);
-      cv::imwrite("./gradient/gradient.png",grad);
+       sobel_mask(image_gray,grad,mask);
+       cv::imwrite("./gradient/gradient.png",grad);
 
-      int number = number_seams_to_remove(mask);
-      std::cout << number << std::endl;
-      for(int i =0; i <= (int)number; i++){
+       int number = number_seams_to_remove(mask);
+       for(int i =0; i <= (int)number; i++){
 
-        int* list_x_seams = seams_mask(grad);
-        result = move_im_rgb(result, list_x_seams);
-        grad = move_im_int(grad, list_x_seams);
+         int* list_x_seams = seams<int>(grad);
+         result = move_im<cv::Vec3b>(result, list_x_seams);
+         grad = move_im<int>(grad, list_x_seams);
    
-        free(list_x_seams);   
+         free(list_x_seams);   
 
-        std::cout << "Removing seams : " << int(float(i)/number *100) << "%" << "\r" <<std::flush;
-      }
-      std::cout<<std::endl;
+         std::cout << "Removing seams : " << int(float(i)/number *100) << "%" << "\r" <<std::flush;
+       }
+       std::cout<<std::endl;
 
-      cv::cvtColor(result, image_gray, CV_RGB2GRAY);
-      grad = image_gray.clone();
-      sobel(image_gray,grad);
+       cv::cvtColor(result, image_gray, CV_RGB2GRAY);
+       grad = image_gray.clone();
+       sobel(image_gray,grad);
 
-      for(int i =0; i < number; i++){
+       for(int i =0; i < number; i++){
 
-        int* list_x_seams = seams(grad);
-        result = insert_seams(result, list_x_seams);
-        grad = insert_seams_gray(grad, list_x_seams);
-        free(list_x_seams);
+         int* list_x_seams = seams<uchar>(grad);
+         result = insert_seams<cv::Vec3b>(result, list_x_seams);
+         grad = insert_seams_gradient<uchar>(grad, list_x_seams);
+         free(list_x_seams);
 
-        std::cout << "Adding seams : " << int(float(i)/number *100) << "%" << "\r" <<std::flush;
-      }
-  }
+         std::cout << "Adding seams : " << int(float(i)/number *100) << "%" << "\r" <<std::flush;
+       }
+   }
   else{
     std::cout << "Choose correct mode: add, remove, mask" <<std::endl;
     return 0;
@@ -460,7 +341,6 @@ int main( int argc, char** argv ) {
   
   return 0;
 }
-
 
 /*image storing
 std::stringstream gradient_name,result_name;
