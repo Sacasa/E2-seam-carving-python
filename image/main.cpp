@@ -16,6 +16,14 @@ int convo3x3(int A[3][3], int B[3][3]){
     return tot;
 }
 
+int mean_rgb(cv::Vec3b pixel){
+  return (pixel.val[0]+pixel.val[1]+pixel.val[2])/3;
+}
+
+cv::Vec3b abs_rgb(cv::Vec3b vec){
+  return cv::Vec3b(std::abs(vec.val[0]),std::abs(vec.val[1]),std::abs(vec.val[2]));
+}
+
 int min_3(int a,int b,int c){
     return std::min(a,std::min(b,c));
 }
@@ -107,7 +115,8 @@ void sobel_mask(cv::Mat img_gray, cv::Mat img_to, cv::Mat img_mask){
 }
 
 template <typename T>
-int*  seams(cv::Mat mat){
+int*  seams(cv::Mat mat,cv::Mat image){
+    double weight = 0.99;
     int** cop = new int*[mat.rows];
     for (int i = 0; i < mat.rows; ++i)
         cop[i] = new int[mat.cols];
@@ -120,8 +129,14 @@ int*  seams(cv::Mat mat){
                 cop[y][x] = mat.at<T>(y,x) + std::min(cop[y-1][x],cop[y-1][x+1]);
             else if(x == mat.cols-1)
                 cop[y][x] = mat.at<T>(y,x) + std::min(cop[y-1][x],cop[y-1][x-1]);
-            else
-                cop[y][x] = mat.at<T>(y,x) + min_3(cop[y-1][x+1],cop[y-1][x],cop[y-1][x-1]) ; 
+            else{
+                int CV =mean_rgb(abs_rgb(image.at<cv::Vec3b>(y,x+1)-image.at<cv::Vec3b>(y,x-1))); 
+                int CL = CV +mean_rgb(abs_rgb(image.at<cv::Vec3b>(y-1,x)-image.at<cv::Vec3b>(y,x-1)));
+                int CR = CV +mean_rgb(abs_rgb(image.at<cv::Vec3b>(y-1,x)-image.at<cv::Vec3b>(y,x+1))) ;
+                cop[y][x] = mat.at<T>(y,x) + min_3(weight*cop[y-1][x+1]+(1-weight)*CR,
+                                                   weight*cop[y-1][x]+(1-weight)*CV,
+                                                   weight*cop[y-1][x-1]+(1-weight)*CL) ; 
+            }
         }
     }
 
@@ -269,7 +284,7 @@ int main( int argc, char** argv ) {
   if(std::strcmp(argv[2],"add") == 0){
       for(int i =0; i < atoi(argv[3]); i++){
 
-        int* list_x_seams = seams<uchar>(gradient);
+        int* list_x_seams = seams<uchar>(gradient,result);
         result = insert_seams<cv::Vec3b>(result, list_x_seams);
         gradient = insert_seams_gradient<uchar>(gradient, list_x_seams);
         free(list_x_seams);
@@ -280,7 +295,7 @@ int main( int argc, char** argv ) {
   else if(std::strcmp(argv[2],"remove") == 0){
       for(int i =0; i < atoi(argv[3]); i++){
 
-        int* list_x_seams = seams<uchar>(gradient);
+        int* list_x_seams = seams<uchar>(gradient,result);
         result = move_im<cv::Vec3b>(result, list_x_seams);
         gradient = move_im<uchar>(gradient, list_x_seams);
         free(list_x_seams);       
@@ -304,7 +319,7 @@ int main( int argc, char** argv ) {
        int number = number_seams_to_remove(mask);
        for(int i =0; i <= (int)number; i++){
 
-         int* list_x_seams = seams<int>(grad);
+         int* list_x_seams = seams<int>(grad,result);
          result = move_im<cv::Vec3b>(result, list_x_seams);
          grad = move_im<int>(grad, list_x_seams);
    
@@ -320,7 +335,7 @@ int main( int argc, char** argv ) {
 
        for(int i =0; i < number; i++){
 
-         int* list_x_seams = seams<uchar>(grad);
+         int* list_x_seams = seams<uchar>(grad,result);
          result = insert_seams<cv::Vec3b>(result, list_x_seams);
          grad = insert_seams_gradient<uchar>(grad, list_x_seams);
          free(list_x_seams);
@@ -337,7 +352,7 @@ int main( int argc, char** argv ) {
   time_span = t2 - t1;
   std::cout << "All operations after took : " << time_span.count() << " milliseconds." << std::endl;
 
-  cv::imwrite("result.png",result);
+  cv::imwrite("resultForward.png",result);
   
   return 0;
 }
