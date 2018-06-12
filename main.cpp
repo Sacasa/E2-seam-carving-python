@@ -102,8 +102,8 @@ cv::Mat gaussian_blur(cv::Mat image) {
 }
 
 void sobel(cv::Mat img_gray, cv::Mat img_to) {
-	int convx[3][3] = { -1,0,1, -2,0,2, -1,0,1 };
-	int convy[3][3] = { -1,-2,-1, 0,0,0, 1,2,1 };
+	int convx[3][3] = { -3,0,3, -10,0,10, -3,0,3 };
+	int convy[3][3] = { -3,-10,-3, 0,0,0, 3,10,3 };
 
 	img_gray.forEach<uchar>([img_gray, &convx, &convy, &img_to](uchar &p, const int * position) -> void {
 		int y = position[0];
@@ -130,8 +130,8 @@ void sobel(cv::Mat img_gray, cv::Mat img_to) {
 }
 
 void sobel_mask(cv::Mat img_gray, cv::Mat img_to, cv::Mat img_mask,int coef) {
-	int convx[3][3] = { -1,0,1, -2,0,2, -1,0,1 };
-	int convy[3][3] = { -1,-2,-1, 0,0,0, 1,2,1 };
+	int convx[3][3] = { -3,0,3, -10,0,10, -3,0,3 };
+	int convy[3][3] = { -3,-10,-3, 0,0,0, 3,10,3 };
 
 	img_gray.forEach<uchar>([img_gray, &convx, &convy, &img_to, &img_mask,&coef](uchar &p, const int * position) -> void {
 		int y = position[0];
@@ -153,7 +153,7 @@ void sobel_mask(cv::Mat img_gray, cv::Mat img_to, cv::Mat img_mask,int coef) {
 		int Gy = convo3x3(convy, voisinnage);
 		int G = sqrt(pow(Gx, 2) + pow(Gy, 2));
 		//img_to.at<int>(y, x) = ((int)img_mask.at<uchar>(y, x) == 255) ? G*-1000 : G;
-		img_to.at<int>(y, x) = ((int)img_mask.at<uchar>(y, x) == 255) ? G*coef : G;
+		img_to.at<int>(y, x) = ((int)img_mask.at<uchar>(y, x) >= 10) ? G*coef : G;
 	});
 }
 
@@ -425,6 +425,14 @@ cv::Mat add_vertical(int n, cv::Mat image, cv::Mat gradient) {
 		int* list_x_seams = seams_vertical<T>(gradient);
 		result = insert_seams_vertical<cv::Vec3b>(result, list_x_seams);
 		gradient = insert_seams_gradient_vertical<T>(gradient, list_x_seams);
+
+		std::stringstream gradient_name, result_name;
+		gradient_name << "./gradient/gradientADD" << i << ".png";
+		result_name << "./result/resultADD" << i << ".png";
+		cv::imwrite(gradient_name.str().c_str(), gradient);
+		cv::imwrite(result_name.str().c_str(), result);
+
+
 		free(list_x_seams);
 
 		std::cout << "Adding vertical seams : " << int(float(i) / n * 100) << "%" << "\r" << std::flush;
@@ -435,8 +443,8 @@ cv::Mat add_vertical(int n, cv::Mat image, cv::Mat gradient) {
 
 void sobel_fracture_vertical(cv::Mat gradient, cv::Mat image, int* list_seams) {
 	int xi;
-	int convx[3][3] = { -1,0,1, -2,0,2, -1,0,1 };
-	int convy[3][3] = { -1,-2,-1, 0,0,0, 1,2,1 };
+	int convx[3][3] = { -3,0,3, -10,0,10, -3,0,3 };
+	int convy[3][3] = { -3,-10,-3, 0,0,0, 3,10,3 };
 	for (int y = 0; y < gradient.rows; y++) {
 		xi = list_seams[y];
 		for (int x = xi - 2; x <= xi + 2; x++) {
@@ -470,8 +478,8 @@ void sobel_fracture_vertical(cv::Mat gradient, cv::Mat image, int* list_seams) {
 
 void sobel_fracture_vertical_mask(cv::Mat gradient, cv::Mat image, int* list_seams,cv::Mat mask, int coef) {
 	int xi;
-	int convx[3][3] = { -1,0,1, -2,0,2, -1,0,1 };
-	int convy[3][3] = { -1,-2,-1, 0,0,0, 1,2,1 };
+	int convx[3][3] = { -3,0,3, -10,0,10, -3,0,3 };
+	int convy[3][3] = { -3,-10,-3, 0,0,0, 3,10,3 };
 	for (int y = 0; y < gradient.rows; y++) {
 		xi = list_seams[y];
 		for (int x = xi - 2; x <= xi + 2; x++) {
@@ -549,21 +557,9 @@ cv::Mat remove_vertical(int n, cv::Mat image, cv::Mat gradient, cv::Mat image_gr
 		result = move_im_vertical<cv::Vec3b>(result, list_x_seams);
 		gradient = move_im_vertical<T>(gradient, list_x_seams);
 		image_gray = move_im_vertical<uchar>(image_gray, list_x_seams);
-		std::cout << "before frac" << std::endl;
 		sobel_fracture_vertical(gradient,image_gray, list_x_seams);
-		std::cout << "after frac" << std::endl;
 
-		/*
-		std::stringstream gradient_name, result_name, gray_name;
-		gradient_name << "gradient\\gradient" << i << ".png";
-		result_name << "result\\result" << i << ".png";
-		gray_name << "gray\\gray" << i << ".png";
-		cv::imwrite(gradient_name.str().c_str(), gradient);
-		cv::imwrite(gray_name.str().c_str(), image_gray);
-		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result,list_x_seams));*/
-
-
-		free(list_x_seams);
+				free(list_x_seams);
 		std::cout << "Removing vertical seams : " << int(float(i) / n * 100) << "%" << "\r" << std::flush;
 	}
 	std::cout << std::endl;
@@ -579,15 +575,12 @@ cv::Mat remove_vertical_mask(int n, cv::Mat image, cv::Mat gradient, cv::Mat ima
 		result = move_im_vertical<cv::Vec3b>(result, list_x_seams);
 		gradient = move_im_vertical<T>(gradient, list_x_seams);
 		image_gray = move_im_vertical<uchar>(image_gray, list_x_seams);
-
-		/*
+		
 		std::stringstream gradient_name, result_name, gray_name;
-		gradient_name << "gradient\\gradient" << i << ".png";
-		result_name << "result\\result" << i << ".png";
-		gray_name << "gray\\gray" << i << ".png";
+		gradient_name << "gradient\\gradientRM" << i << ".png";
+		result_name << "result\\resultRM" << i << ".png";
 		cv::imwrite(gradient_name.str().c_str(), gradient);
-		cv::imwrite(gray_name.str().c_str(), image_gray);
-		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result,list_x_seams));*/
+		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result, list_x_seams));
 
 
 		free(list_x_seams);
@@ -609,13 +602,13 @@ cv::Mat remove_vertical_accent(int n, cv::Mat image, cv::Mat gradient, cv::Mat i
 		mask = move_im_vertical<uchar>(mask, list_x_seams);
 		sobel_fracture_vertical_mask(gradient, image_gray, list_x_seams,mask,coef);
 		
-		std::stringstream gradient_name, result_name, gray_name;
+		/*std::stringstream gradient_name, result_name, gray_name;
 		gradient_name << "gradient\\gradient" << i << ".png";
 		result_name << "result\\result" << i << ".png";
 		gray_name << "gray\\gray" << i << ".png";
 		cv::imwrite(gradient_name.str().c_str(), gradient);
 		cv::imwrite(gray_name.str().c_str(), image_gray);
-		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result,list_x_seams));
+		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result,list_x_seams));*/
 	
 		free(list_x_seams);
 		std::cout << "Removing vertical seams : " << int(float(i) / n * 100) << "%" << "\r" << std::flush;
@@ -758,7 +751,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	cv::imwrite("resulFracture.png", result);
+	cv::imwrite("resultMask.png", result);
 	//cv::imwrite("result.png", result);
 
 	cv::waitKey();
