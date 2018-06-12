@@ -426,11 +426,11 @@ cv::Mat add_vertical(int n, cv::Mat image, cv::Mat gradient) {
 		result = insert_seams_vertical<cv::Vec3b>(result, list_x_seams);
 		gradient = insert_seams_gradient_vertical<T>(gradient, list_x_seams);
 
-		std::stringstream gradient_name, result_name;
+		/*std::stringstream gradient_name, result_name;
 		gradient_name << "./gradient/gradientADD" << i << ".png";
 		result_name << "./result/resultADD" << i << ".png";
 		cv::imwrite(gradient_name.str().c_str(), gradient);
-		cv::imwrite(result_name.str().c_str(), result);
+		cv::imwrite(result_name.str().c_str(), result);*/
 
 
 		free(list_x_seams);
@@ -567,24 +567,28 @@ cv::Mat remove_vertical(int n, cv::Mat image, cv::Mat gradient, cv::Mat image_gr
 }
 
 template <typename T>
-cv::Mat remove_vertical_mask(int n, cv::Mat image, cv::Mat gradient, cv::Mat image_gray) {
+cv::Mat remove_vertical_mask(cv::Mat image, cv::Mat gradient, cv::Mat image_gray, cv::Mat mask, int* number) {
 	cv::Mat result = image.clone();
-	for (int i = 0; i < n; i++) {
 
+	while (nbr_points_mask(mask) > 0 ){
+		std::cout << nbr_points_mask(mask) << std::endl;
 		int* list_x_seams = seams_vertical<T>(gradient);
 		result = move_im_vertical<cv::Vec3b>(result, list_x_seams);
 		gradient = move_im_vertical<T>(gradient, list_x_seams);
 		image_gray = move_im_vertical<uchar>(image_gray, list_x_seams);
-		
-		std::stringstream gradient_name, result_name, gray_name;
-		gradient_name << "gradient\\gradientRM" << i << ".png";
-		result_name << "result\\resultRM" << i << ".png";
-		cv::imwrite(gradient_name.str().c_str(), gradient);
-		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result, list_x_seams));
+		mask = move_im_vertical<uchar>(mask, list_x_seams);
 
+		/*std::stringstream gradient_name, result_name, gray_name;
+		gradient_name << "gradient\\gradientRM" << *number << ".png";
+		result_name << "result\\resultRM" << *number << ".png";
+		gray_name << "mask\\mask" << *number << ".png";
+		cv::imwrite(gradient_name.str().c_str(), gradient);
+		cv::imwrite(gray_name.str().c_str(), mask);
+		cv::imwrite(result_name.str().c_str(), highlight_seams_vertical(result, list_x_seams));*/
 
 		free(list_x_seams);
-		std::cout << "Removing vertical seams : " << int(float(i) / n * 100) << "%" << "\r" << std::flush;
+		*number = *number + 1;
+		//std::cout << "Removing vertical seams : "<< "\r" << std::flush;
 	}
 	std::cout << std::endl;
 	return result;
@@ -615,6 +619,16 @@ cv::Mat remove_vertical_accent(int n, cv::Mat image, cv::Mat gradient, cv::Mat i
 	}
 	std::cout << std::endl;
 	return result;
+}
+
+int nbr_points_mask(cv::Mat mask) {
+	int i= 0;
+
+	mask.forEach<uchar>([mask,&i](uchar &p, const int * position) -> void {
+		if (p > 100)
+			i++;
+	});
+	return i;
 }
 
 int main(int argc, char** argv) {
@@ -692,10 +706,13 @@ int main(int argc, char** argv) {
 
 		sobel_mask(image_gray, grad, mask,-1000);
 		std::cout<<"mask sobel done" <<std::endl;
-		int number = number_seams_to_remove(mask);
+		int number = 0;
+		int j = number_seams_to_remove(mask);
 
 		//result = remove_vertical_mask<int>(number, result, grad, image_gray,mask,-1000);
-		result = remove_vertical_mask<int>(number, result, grad, image_gray);
+		result = remove_vertical_mask<int>(result, grad, image_gray,mask,&number);
+
+		std::cout << number << " " << j << std::endl;
 
 		cv::cvtColor(result, image_gray, CV_RGB2GRAY);
 		grad = image_gray.clone();
